@@ -63,4 +63,7 @@ dependencies {
     implementation ("androidx.compose.material3:material3:1.3.1")
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.31.0-alpha")
     implementation ("com.google.accompanist:accompanist-pager:0.12.0")
+    //retrofit para implementacion de buscador ia
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
 }

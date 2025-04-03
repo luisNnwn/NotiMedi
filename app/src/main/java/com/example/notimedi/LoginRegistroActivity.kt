@@ -1,5 +1,6 @@
 package com.example.notimedi
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +43,7 @@ class LoginRegistroActivity : ComponentActivity() {
 @Composable
 fun LoginRegistroScreen() {
     var isLoginSelected by remember { mutableStateOf(true) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -141,22 +144,26 @@ fun LoginRegistroScreen() {
                 .padding(24.dp)
         ) {
             Crossfade(targetState = isLoginSelected, label = "formSwitch") { showLogin ->
-                if (showLogin) LoginForm()
-                else RegistroForm(onRegistered = {isLoginSelected = true})
+                if (showLogin) LoginForm(onLogin = {
+                    context.startActivity(Intent(context, NotificacionesInfoActivity::class.java))
+                }) else RegistroForm(onRegistered = { isLoginSelected = true })
             }
         }
     }
 }
 
 @Composable
-fun LoginForm() {
+fun LoginForm(onLogin: () -> Unit) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
     Column {
         Text("Bienvenido/a", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = email,
+            onValueChange = { email = it },
             label = { Text("Correo electrónico", color = Color.White) },
             modifier = Modifier.fillMaxWidth(),
             textStyle = LocalTextStyle.current.copy(color = Color.White)
@@ -165,8 +172,8 @@ fun LoginForm() {
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = password,
+            onValueChange = { password = it },
             label = { Text("Contraseña", color = Color.White) },
             modifier = Modifier.fillMaxWidth(),
             textStyle = LocalTextStyle.current.copy(color = Color.White)
@@ -184,7 +191,7 @@ fun LoginForm() {
         )
 
         Button(
-            onClick = { },
+            onClick = onLogin,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -200,11 +207,12 @@ fun LoginForm() {
 fun RegistroForm(onRegistered: () -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("")}
+    var confirmPassword by remember { mutableStateOf("") }
+
     Column {
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = email,
+            onValueChange = { email = it },
             label = { Text("Correo electrónico", color = Color.White) },
             modifier = Modifier.fillMaxWidth(),
             textStyle = LocalTextStyle.current.copy(color = Color.White)
@@ -213,8 +221,8 @@ fun RegistroForm(onRegistered: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = password,
+            onValueChange = { password = it },
             label = { Text("Contraseña", color = Color.White) },
             modifier = Modifier.fillMaxWidth(),
             textStyle = LocalTextStyle.current.copy(color = Color.White)
@@ -223,8 +231,8 @@ fun RegistroForm(onRegistered: () -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
             label = { Text("Reescribe tu contraseña", color = Color.White) },
             modifier = Modifier.fillMaxWidth(),
             textStyle = LocalTextStyle.current.copy(color = Color.White)
@@ -233,7 +241,7 @@ fun RegistroForm(onRegistered: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { var isLoginSelected = true },
+            onClick = onRegistered,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -244,4 +252,3 @@ fun RegistroForm(onRegistered: () -> Unit) {
         }
     }
 }
-

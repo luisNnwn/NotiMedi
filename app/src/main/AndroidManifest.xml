@@ -13,6 +13,12 @@
         android:theme="@style/Theme.NotiMedi"
         tools:targetApi="31">
         <activity android:name=".LoginRegistroActivity"/>
+        <activity android:name=".NotificacionesInfoActivity"/>
+        <activity android:name=".PrincipalActivity"/>
+        <activity android:name=".ConfiguracionActivity"/>
+        <activity android:name=".PerfilesActivity"/>
+        <activity android:name=".PerfilInfoGeneralActivity"/>
+        <activity android:name=".MedicamentosActivity"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
