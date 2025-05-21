@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "248191513672",
+    "project_id": "notimedi-771b3",
+    "storage_bucket": "notimedi-771b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:248191513672:android:ac780d1a8db55850c7147d",
+        "android_client_info": {
+          "package_name": "com.example.notimedi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "248191513672-5u8ooen3cg6q6bp7ntipg51t2rlmbf7m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.notimedi",
+            "certificate_hash": "14b7b268664f56bc13aa10bc113431686d60c480"
+          }
+        },
+        {
+          "client_id": "248191513672-mnd7a774n830moocpf8geotagdpbfuej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtunxGlzPbUfuG_TKegfZXc-0ebGuEeQE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "248191513672-31tgqq8nrenft1k4l38frpnd7j8u6sqq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,7 @@ package com.example.notimedi
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -10,17 +11,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.notimedi.ui.theme.NotiMediTheme
+import com.example.notimedi.data.model.preferences.UserPreferences
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import kotlinx.coroutines.launch
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.example.notimedi.util.encriptarPin
+import com.example.notimedi.data.NotiMediDatabase
 
 class ConfiguracionActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +50,13 @@ class ConfiguracionActivity : ComponentActivity() {
 @Composable
 fun SettingsScreen() {
     val context = LocalContext.current
+    val userPrefs = remember { UserPreferences(context) }
+    val scope = rememberCoroutineScope()
+    val db = remember { NotiMediDatabase.getDatabase(context) }
+
+    var pinVisible by remember { mutableStateOf(false) }
+    var pinText by remember { mutableStateOf("") }
+    val currentUser by userPrefs.getCurrentUser().collectAsState(initial = "")
 
     Column(
         modifier = Modifier
@@ -47,8 +66,7 @@ fun SettingsScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -62,11 +80,7 @@ fun SettingsScreen() {
                     }
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = "Ajustes",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("Ajustes", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
         Spacer(modifier = Modifier.height(48.dp))
@@ -76,46 +90,97 @@ fun SettingsScreen() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(
-                onClick = { /* Cambiar contraseña */ },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(vertical = 4.dp),
+                onClick = { },
+                modifier = Modifier.fillMaxWidth(0.9f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2C2C))
-            ) {
-                Text("Cambiar contraseña", color = Color.White)
-            }
+            ) { Text("Cambiar contraseña", color = Color.White) }
 
             Button(
-                onClick = { /* Borrar cuenta */ },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(vertical = 4.dp),
+                onClick = { },
+                modifier = Modifier.fillMaxWidth(0.9f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2C2C))
-            ) {
-                Text("Borrar cuenta", color = Color.White)
-            }
+            ) { Text("Borrar cuenta", color = Color.White) }
 
             Button(
-                onClick = { /* Sobre NotiMedi */ },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(vertical = 4.dp),
+                onClick = { },
+                modifier = Modifier.fillMaxWidth(0.9f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2C2C))
+            ) { Text("Sobre NotiMedi", color = Color.White) }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ElevatedButton(
+                onClick = { pinVisible = !pinVisible },
+                modifier = Modifier.fillMaxWidth(0.9f),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A3A3A))
             ) {
-                Text("Sobre NotiMedi", color = Color.White)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Establecer PIN de seguridad", color = Color.White)
+                    Icon(
+                        imageVector = if (pinVisible) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
+            }
+
+            if (pinVisible) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = pinText,
+                    onValueChange = {
+                        if (it.length <= 6 && it.all { c -> c.isDigit() }) pinText = it
+                    },
+                    label = { Text("PIN de 6 dígitos") },
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation()
+                )
+
+                IconButton(onClick = {
+                    if (pinText.length == 6 && !currentUser.isNullOrBlank()) {
+                        val encriptado = encriptarPin(pinText)
+                        scope.launch {
+                            db.usuarioDao().actualizarPin(currentUser!!, encriptado)
+                            Toast.makeText(context, "PIN establecido", Toast.LENGTH_SHORT).show()
+                            pinVisible = false
+                            pinText = ""
+                        }
+                    } else {
+                        Toast.makeText(context, "Debe ingresar un PIN válido", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Icon(Icons.Default.Check, contentDescription = "Guardar PIN", tint = Color(0xFF4CAF50))
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
             Button(
                 onClick = {
-                    val intent = Intent(context, LoginRegistroActivity::class.java)
-                    context.startActivity(intent)
-                    (context as? ComponentActivity)?.finish()
+                    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestIdToken(context.getString(R.string.default_web_client_id))
+                        .requestEmail()
+                        .build()
+                    GoogleSignIn.getClient(context, gso).signOut()
+
+                    scope.launch {
+                        userPrefs.clearLoginStatus()
+                        val intent = Intent(context, LoginRegistroActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        context.startActivity(intent)
+                        (context as? ComponentActivity)?.finish()
+                    }
                 },
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(0.9f),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
             ) {
                 Text("Cerrar Sesión", color = Color.White)
@@ -123,15 +188,8 @@ fun SettingsScreen() {
 
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val versionName = packageInfo.versionName
-
-            Text(
-                text = "Versión: $versionName",
-                fontSize = 12.sp,
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+            val version = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            Text("Versión: $version", fontSize = 12.sp, color = Color.Gray)
         }
     }
 }

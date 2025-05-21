@@ -29,31 +29,65 @@ import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import android.content.Intent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.*
+import kotlinx.coroutines.delay
+import androidx.lifecycle.lifecycleScope
+import com.example.notimedi.data.model.preferences.UserPreferences
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
-    @OptIn(ExperimentalPagerApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val userPrefs = UserPreferences(this)
+
         setContent {
+            val loginState by userPrefs.getLoginStatus().collectAsState(initial = null)
+            val onboardingShown by userPrefs.isOnboardingShown().collectAsState(initial = false)
+
             NotiMediTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    val items = listOf(
-                        OnBoardingData(R.drawable.onboarding1, Color(0xFF2B3D66), mainColor = Color.White, mainText = "Organiza la hora de tus medicinas", subText = "Tomate un tiempo para crear tu horario"),
-                        OnBoardingData(R.drawable.onboarding2, Color(0xFF2B3D66), mainColor = Color.White, mainText = "Recibe notificaciones", subText = "Y no pierdas el horario de tus medicamentos"),
-                        OnBoardingData(R.drawable.onboarding3, Color(0xFF2B3D66), mainColor = Color.White, mainText = "¡Tu salud en tus manos!", subText = "Comienza a crear tu itinerario de medicamentos")
-                    )
-                    val pagerState = rememberPagerState(
-                        pageCount = items.size,
-                        initialOffscreenLimit = 2,
-                        infiniteLoop = false,
-                        initialPage = 0
-                    )
-                    OnBoardingPager(
-                        item = items,
-                        pagerState = pagerState,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    when {
+                        loginState == null -> {
+                            LoaderUI()
+                        }
+
+                        loginState == true -> {
+                            LoaderUI()
+                            LaunchedEffect(Unit) {
+                                delay(3000)
+                                val siguiente = if (tienePermisoNotificaciones()) {
+                                    PrincipalActivity::class.java
+                                } else {
+                                    NotificacionesInfoActivity::class.java
+                                }
+                                startActivity(Intent(this@MainActivity, siguiente))
+                                finish()
+                            }
+                        }
+
+                        loginState == false && !onboardingShown -> {
+                            OnboardingUI {
+                                lifecycleScope.launch {
+                                    userPrefs.setOnboardingShown()
+                                }
+                            }
+                        }
+
+                        else -> {
+                            val intent = Intent(this@MainActivity, LoginRegistroActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            }
+                            startActivity(intent)
+                            finish()
+                        }
+                    }
                 }
             }
         }
@@ -65,7 +99,8 @@ class MainActivity : ComponentActivity() {
 fun OnBoardingPager(
     item: List<OnBoardingData>,
     pagerState: PagerState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onFinished: () -> Unit
 ) {
     Box(
         modifier = modifier
@@ -196,10 +231,7 @@ fun OnBoardingPager(
                         } else {
                             Button(
                                 onClick = {
-                                    context.startActivity(Intent(context, LoginRegistroActivity::class.java))
-                                    if (context is Activity) {
-                                        context.finish()
-                                    }
+                                   onFinished()
                                 },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFF5D7FBF)
@@ -260,3 +292,54 @@ fun Indicator(isSelected: Boolean, color: Color, inactiveColor: Color) {
             .background(if (isSelected) color else inactiveColor)
     )
 }
+
+@OptIn(ExperimentalPagerApi::class)
+@Composable
+fun OnboardingUI(onFinished: () -> Unit) {
+    NotiMediTheme {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            val items = listOf(
+                OnBoardingData(R.drawable.onboarding1, Color(0xFF2B3D66), mainColor = Color.White, mainText = "Organiza la hora de tus medicinas", subText = "Tómate un tiempo para crear tu horario"),
+                OnBoardingData(R.drawable.onboarding2, Color(0xFF2B3D66), mainColor = Color.White, mainText = "Recibe notificaciones", subText = "Y no pierdas el horario de tus medicamentos"),
+                OnBoardingData(R.drawable.onboarding3, Color(0xFF2B3D66), mainColor = Color.White, mainText = "¡Tu salud en tus manos!", subText = "Comienza a crear tu itinerario de medicamentos")
+            )
+            val pagerState = rememberPagerState(
+                pageCount = items.size,
+                initialOffscreenLimit = 2,
+                infiniteLoop = false,
+                initialPage = 0
+            )
+            OnBoardingPager(
+                item = items,
+                pagerState = pagerState,
+                modifier = Modifier.fillMaxWidth(),
+                onFinished = onFinished
+            )
+        }
+    }
+}
+
+
+
+@Composable
+fun LoaderUI() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF2B3D66)),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            color = Color.White,
+            strokeWidth = 4.dp
+        )
+    }
+}
+
+fun Activity.tienePermisoNotificaciones(): Boolean {
+    return ContextCompat.checkSelfPermission(
+        this,
+        Manifest.permission.POST_NOTIFICATIONS
+    ) == PackageManager.PERMISSION_GRANTED
+}
+

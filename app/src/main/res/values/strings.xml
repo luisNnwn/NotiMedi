@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">NotiMedi</string>
+    <string name="default_web_client_id">248191513672-5u8ooen3cg6q6bp7ntipg51t2rlmbf7m.apps.googleusercontent.com</string>
+
 </resources>

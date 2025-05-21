@@ -1,12 +1,13 @@
 package com.example.notimedi
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.app.Activity
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,6 +44,15 @@ class NotificacionesInfoActivity : ComponentActivity() {
 @Composable
 fun NotificacionesInfoScreen() {
     val context = LocalContext.current
+    val activity = context as? Activity
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        val intent = Intent(context, PrincipalActivity::class.java)
+        context.startActivity(intent)
+        activity?.finish()
+    }
 
     Column(
         modifier = Modifier
@@ -81,9 +91,13 @@ fun NotificacionesInfoScreen() {
 
         Button(
             onClick = {
-                val intent = Intent(context, PrincipalActivity::class.java)
-                context.startActivity(intent)
-                (context as? android.app.Activity)?.finish()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    val intent = Intent(context, PrincipalActivity::class.java)
+                    context.startActivity(intent)
+                    activity?.finish()
+                }
             },
             modifier = Modifier
                 .fillMaxWidth(0.7f)

@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -16,9 +19,11 @@
         <activity android:name=".NotificacionesInfoActivity"/>
         <activity android:name=".PrincipalActivity"/>
         <activity android:name=".ConfiguracionActivity"/>
-        <activity android:name=".PerfilesActivity"/>
         <activity android:name=".PerfilInfoGeneralActivity"/>
-        <activity android:name=".MedicamentosActivity"/>
+        <activity android:name=".ListaMedicamentosActivity"/>
+        <activity android:name=".EstablecerRecordatorioActivity"/>
+        <receiver android:name=".notificaciones.NotificationWorker"  android:exported="true" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

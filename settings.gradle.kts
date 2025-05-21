@@ -16,9 +16,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://pkgs.dev.azure.com/google-content-privacy/generative-ai-sdk/_packaging/public/maven/v1")
+        }
     }
 }
 
 rootProject.name = "NotiMedi"
 include(":app")
- 

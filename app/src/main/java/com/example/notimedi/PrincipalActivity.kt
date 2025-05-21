@@ -1,5 +1,12 @@
 package com.example.notimedi
 
+import com.example.notimedi.api.GeminiClient
+import com.example.notimedi.api.GeminiRequest
+import com.example.notimedi.api.Part
+import com.example.notimedi.api.Content
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,137 +16,112 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.notimedi.ui.navigation.BottomBarNavigation
 import com.example.notimedi.ui.theme.NotiMediTheme
+import java.util.Calendar
+import android.app.DatePickerDialog
+import android.app.Activity
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import com.example.notimedi.data.NotiMediDatabase
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.navigation.NavHostController
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
+import com.example.notimedi.data.model.preferences.UserPreferences
 
 class PrincipalActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             NotiMediTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    PrincipalScreen()
-                }
+                BottomBarNavigation()
             }
         }
     }
 }
 
-@Composable
-fun PrincipalScreen() {
-    val context = LocalContext.current
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color(0xFF2B3D66),
-                tonalElevation = 0.dp
-            ) {
-                NavigationBarItem(
-                    selected = true,
-                    onClick = { /* Ya estás en Principal */ },
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.casa),
-                            contentDescription = "Inicio",
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White
-                        )
-                    },
-                    label = {
-                        Text("Inicio", color = Color.White)
-                    }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = {
-                        context.startActivity(Intent(context, PerfilesActivity::class.java))
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_usuario),
-                            contentDescription = "Perfiles",
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White
-                        )
-                    },
-                    label = {
-                        Text("Perfiles", color = Color.White)
-                    }
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = {
-                        context.startActivity(Intent(context, MedicamentosActivity::class.java))
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_pastilla),
-                            contentDescription = "Medicamentos",
-                            modifier = Modifier.size(20.dp),
-                            tint = Color.White
-                        )
-                    },
-                    label = {
-                        Text("Medicamentos", color = Color.White)
-                    }
-                )
+// Pantalla Principal
+@Composable
+fun PrincipalScreen(navController: NavHostController) {
+    val context = LocalContext.current
+    val db = remember { NotiMediDatabase.getDatabase(context) }
+    val userPrefs = remember { UserPreferences(context) }
+    val currentUser = userPrefs.getCurrentUser().collectAsState(initial = "").value ?: ""
+    val scope = rememberCoroutineScope()
+
+    var nombreMostrado by remember { mutableStateOf("Chayanne") }
+
+    // Obtener nombre completo o username desde Room
+    LaunchedEffect(Unit) {
+        userPrefs.getCurrentUser().collect { username ->
+            if (!username.isNullOrBlank()) {
+                val usuario = db.usuarioDao().getUsuarioPorNombre(username)
+                nombreMostrado = usuario?.nombreCompleto ?: username
             }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    }
+
+    val perfiles by db.perfilDao().obtenerPorUsuario(currentUser).collectAsState(initial = emptyList())
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.notimedilogo),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(64.dp)
-                )
-                IconButton(onClick = {
-                    val intent = Intent(context, ConfiguracionActivity::class.java)
-                    context.startActivity(intent)
-                }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configuración")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Hola, Chayanne.\nBienvenido a NotiMedi, desde acá puedes empezar a crear tu itinerario de medicamentos",
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(8.dp)
+            Image(
+                painter = painterResource(id = R.drawable.notimedilogo),
+                contentDescription = "Logo",
+                modifier = Modifier.size(64.dp)
             )
+            IconButton(onClick = {
+                context.startActivity(Intent(context, ConfiguracionActivity::class.java))
+            }) {
+                Icon(Icons.Default.Settings, contentDescription = "Configuración")
+            }
+        }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Hola, $nombreMostrado.\nBienvenido a NotiMedi, desde acá puedes empezar a crear tu itinerario de medicamentos",
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(8.dp)
+        )
+
+        if (perfiles.isNotEmpty()) {
             Button(
                 onClick = {
-                    val intent = Intent(context, PerfilesActivity::class.java)
-                    context.startActivity(intent)
+                    navController.navigate("perfiles?form=true")
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,56 +129,382 @@ fun PrincipalScreen() {
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D7FBF))
             ) {
-                Text("Crear mi itinerario", color = Color.White)
+                Text("Agregar un nuevo perfil", color = Color.White)
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "¡Infórmate!",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                modifier = Modifier.align(Alignment.Start)
+        Text("¡Infórmate!", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.align(Alignment.Start))
+        Text("Y siempre que quieras, puedes leer estos artículos informativos.", fontSize = 14.sp, modifier = Modifier.align(Alignment.Start))
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val articles = listOf(
+            "Importancia de tomar los medicamentos a tiempo" to "https://www.youtube.com/watch?v=1",
+            "¿Puedo tomar alcohol con mi medicamento?" to "https://www.youtube.com/watch?v=2",
+            "Consejos para organizar tus medicamentos" to "https://www.youtube.com/watch?v=3",
+            "Evita errores comunes al tomar tus medicinas" to "https://www.youtube.com/watch?v=4",
+            "Tipos de medicamentos y sus efectos" to "https://www.youtube.com/watch?v=5"
+        )
+
+        articles.forEach { (title, url) ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        context.startActivity(intent)
+                    },
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6FB))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Haz clic para ver más información en video", fontSize = 12.sp, color = Color.DarkGray)
+                }
+            }
+        }
+    }
+}
+
+// Pantalla Perfiles
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun PerfilesScreen(activarFormulario: Boolean = false) {
+    val context = LocalContext.current
+    val db = remember { NotiMediDatabase.getDatabase(context) }
+    val userPrefs = remember { UserPreferences(context) }
+    val currentUser = userPrefs.getCurrentUser().collectAsState(initial = "").value ?: ""
+    val perfiles by db.perfilDao().obtenerPorUsuario(currentUser).collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+
+    var mostrarFormulario by remember { mutableStateOf(activarFormulario) }
+    var nombre by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    var sexo by remember { mutableStateOf("") }
+    val opcionesSexo = listOf("Masculino", "Femenino")
+    var fechaNacimiento by remember { mutableStateOf("") }
+    val calendar = Calendar.getInstance()
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, year, month, dayOfMonth ->
+            fechaNacimiento = "$dayOfMonth/${month + 1}/$year"
+        },
+        calendar.get(Calendar.YEAR),
+        calendar.get(Calendar.MONTH),
+        calendar.get(Calendar.DAY_OF_MONTH)
+    )
+    var alergiaInput by remember { mutableStateOf("") }
+    var listaAlergias by remember { mutableStateOf(listOf<String>()) }
+    var modoEdicion by remember { mutableStateOf(false) }
+    var perfilEnEdicionId by remember { mutableStateOf<Int?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_leftarrow),
+                contentDescription = "Volver",
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable {
+                        (context as? ComponentActivity)?.finish()
+                    }
             )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text("Perfiles de itinerarios.", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        }
 
+        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+        if (perfiles.isEmpty() && !mostrarFormulario) {
+            Text("Todavía no hay perfiles", color = Color(0xFF1B4D7A), fontWeight = FontWeight.Bold)
             Text(
-                text = "Y siempre que quieras, puedes leer estos artículos informativos.",
+                "Crear un perfil es útil si vas a usar NotiMedi por primera vez...",
                 fontSize = 14.sp,
-                modifier = Modifier.align(Alignment.Start)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(8.dp)
             )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val articles = listOf(
-                "Importancia de tomar los medicamentos a tiempo" to "https://www.youtube.com/watch?v=1",
-                "¿Puedo tomar alcohol con mi medicamento?" to "https://www.youtube.com/watch?v=2",
-                "Consejos para organizar tus medicamentos" to "https://www.youtube.com/watch?v=3",
-                "Evita errores comunes al tomar tus medicinas" to "https://www.youtube.com/watch?v=4",
-                "Tipos de medicamentos y sus efectos" to "https://www.youtube.com/watch?v=5"
-            )
-
-            articles.forEach { (title, url) ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .clickable {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            context.startActivity(intent)
-                        },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F6FB))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(
-                            text = "Haz clic para ver más información en video",
-                            fontSize = 12.sp,
-                            color = Color.DarkGray
-                        )
+            Button(
+                onClick = { mostrarFormulario = true },
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D7FBF)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Crear un perfil", color = Color.White)
+            }
+        } else if (mostrarFormulario) {
+            OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre o apodo") }, modifier = Modifier.fillMaxWidth())
+            Spacer(modifier = Modifier.height(8.dp))
+            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+                OutlinedTextField(
+                    value = sexo,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Sexo") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                )
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    opcionesSexo.forEach {
+                        DropdownMenuItem(text = { Text(it) }, onClick = { sexo = it; expanded = false })
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = fechaNacimiento,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Fecha de nacimiento") },
+                trailingIcon = {
+                    Icon(Icons.Default.DateRange, contentDescription = "Calendario", modifier = Modifier.clickable { datePickerDialog.show() })
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = alergiaInput,
+                    onValueChange = { alergiaInput = it },
+                    label = { Text("Alergia a medicamento") },
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = {
+                    val nueva = alergiaInput.trim().lowercase()
+                    val yaExiste = listaAlergias.any { it.lowercase() == nueva }
+                    if (alergiaInput.isNotBlank() && !yaExiste) {
+                        listaAlergias = listaAlergias + alergiaInput.trim()
+                        alergiaInput = ""
+                    } else if (yaExiste) {
+                        Toast.makeText(context, "Esta alergia ya fue añadida", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar")
+                }
+            }
+
+            if (listaAlergias.isNotEmpty()) {
+                Text("Alergias añadidas:", fontWeight = FontWeight.SemiBold)
+                listaAlergias.forEach {
+                    Text("• $it", modifier = Modifier.padding(start = 8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    val hoy = Calendar.getInstance()
+                    val fechaLimite = Calendar.getInstance().apply { add(Calendar.YEAR, -99) }
+                    val partes = fechaNacimiento.split("/")
+
+                    if (nombre.isBlank()) {
+                        Toast.makeText(context, "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show(); return@Button
+                    }
+                    if (fechaNacimiento.isBlank() || partes.size != 3) {
+                        Toast.makeText(context, "Seleccioná una fecha válida", Toast.LENGTH_SHORT).show(); return@Button
+                    }
+
+                    val seleccionada = Calendar.getInstance().apply {
+                        set(partes[2].toInt(), partes[1].toInt() - 1, partes[0].toInt())
+                    }
+                    if (seleccionada.after(hoy)) {
+                        Toast.makeText(context, "La fecha no puede ser futura", Toast.LENGTH_SHORT).show(); return@Button
+                    }
+                    if (seleccionada.before(fechaLimite)) {
+                        Toast.makeText(context, "La fecha no puede ser mayor a 99 años atrás", Toast.LENGTH_SHORT).show(); return@Button
+                    }
+
+                    val alergiasSinDuplicados = listaAlergias.map { it.lowercase() }.toSet()
+                    if (alergiasSinDuplicados.size < listaAlergias.size) {
+                        Toast.makeText(context, "Hay alergias repetidas", Toast.LENGTH_SHORT).show(); return@Button
+                    }
+
+                    scope.launch {
+                        val esPrincipal = if (modoEdicion) {
+                            perfiles.find { it.id == perfilEnEdicionId }?.esPrincipal ?: false
+                        } else {
+                            perfiles.isEmpty()
+                        }
+
+                        val perfil = com.example.notimedi.data.model.Perfil(
+                            id = perfilEnEdicionId ?: 0,
+                            nombre = nombre,
+                            sexo = sexo,
+                            fechaNacimiento = fechaNacimiento,
+                            username = currentUser,
+                            esPrincipal = esPrincipal
+                        )
+
+                        val perfilIdFinal = if (modoEdicion && perfilEnEdicionId != null) {
+                            db.perfilDao().actualizar(perfil)
+                            db.alergiaDao().eliminarPorPerfil(perfil.id)
+                            perfil.id
+                        } else {
+                            db.perfilDao().insertar(perfil).toInt()
+                        }
+
+                        alergiasSinDuplicados.forEach { alergia ->
+                            db.alergiaDao().insertar(
+                                com.example.notimedi.data.model.Alergia(
+                                    nombre = alergia,
+                                    perfilId = perfilIdFinal,
+                                    username = currentUser
+                                )
+                            )
+                        }
+
+                        mostrarFormulario = false
+                        modoEdicion = false
+                        perfilEnEdicionId = null
+                        nombre = ""
+                        sexo = ""
+                        fechaNacimiento = ""
+                        listaAlergias = emptyList()
+                    }
+                },
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D7FBF)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (modoEdicion) "Guardar cambios" else "Agregar perfil", color = Color.White)
+            }
+        } else {
+            perfiles.forEach { perfil ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1C2A49)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    val intent = Intent(context, PerfilInfoGeneralActivity::class.java).apply {
+                                        putExtra("perfilId", perfil.id)
+                                    }
+                                    context.startActivity(intent)
+                                }
+                        ) {
+                            Text(text = perfil.nombre, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(text = if (perfil.esPrincipal) "Perfil Principal" else "Perfil Secundario", color = Color.White, fontSize = 12.sp)
+                        }
+
+                        Row {
+                            IconButton(onClick = {
+                                nombre = perfil.nombre
+                                sexo = perfil.sexo
+                                fechaNacimiento = perfil.fechaNacimiento
+                                perfilEnEdicionId = perfil.id
+                                mostrarFormulario = true
+                                modoEdicion = true
+                                scope.launch {
+                                    listaAlergias = db.alergiaDao().obtenerPorPerfil(perfil.id).map { it.nombre }
+                                }
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color.Yellow)
+                            }
+
+                            IconButton(onClick = {
+                                scope.launch {
+                                    db.perfilDao().eliminar(perfil)
+                                    db.alergiaDao().eliminarPorPerfil(perfil.id)
+                                }
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun GeminiQueryScreen() {
+    var userInput by remember { mutableStateOf("") }
+    var responseText by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .padding(16.dp)
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedTextField(
+            value = userInput,
+            onValueChange = { userInput = it },
+            label = { Text("Decile algo a Gemini") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = {
+                scope.launch {
+                    val result = queryGemini(userInput)
+                    responseText = result
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Preguntar")
+        }
+
+        Text(
+            text = responseText,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+suspend fun queryGemini(prompt: String): String {
+    return withContext(Dispatchers.IO) {
+        try {
+            val request = GeminiRequest(
+                contents = listOf(
+                    Content(
+                        role = "user",
+                        parts = listOf(Part(text = prompt))
+                    )
+                )
+            )
+
+            val response = GeminiClient.apiService.generateContent(request).execute()
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                val generatedText = body?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                generatedText ?: "Respuesta vacía"
+            } else {
+                "Error: ${response.code()} - ${response.message()}"
+            }
+        } catch (e: Exception) {
+            "Excepción: ${e.message}"
         }
     }
 }
