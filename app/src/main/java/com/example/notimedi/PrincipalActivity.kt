@@ -1,9 +1,6 @@
 package com.example.notimedi
 
-import com.example.notimedi.api.GeminiClient
-import com.example.notimedi.api.GeminiRequest
-import com.example.notimedi.api.Part
-import com.example.notimedi.api.Content
+import com.google.ai.client.generativeai.GenerativeModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -45,10 +42,13 @@ import androidx.compose.material.icons.filled.DateRange
 import com.example.notimedi.data.NotiMediDatabase
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Warning
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import com.example.notimedi.data.model.preferences.UserPreferences
+import retrofit2.http.Part
 
 class PrincipalActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -451,60 +451,103 @@ fun GeminiQueryScreen() {
 
     Column(
         modifier = Modifier
-            .padding(16.dp)
-            .fillMaxSize(),
+            .padding(24.dp)
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_lupa),
+            contentDescription = "Ícono de búsqueda",
+            modifier = Modifier
+                .size(72.dp)
+                .padding(top = 40.dp)
+        )
+
+        Text(
+            text = "Busca un medicamento",
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp
+        )
+
         OutlinedTextField(
             value = userInput,
             onValueChange = { userInput = it },
-            label = { Text("Decile algo a Gemini") },
+            label = { Text("Nombre del medicamento") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Button(
             onClick = {
                 scope.launch {
-                    val result = queryGemini(userInput)
+                    val result = GeminiHelper.query(userInput)
                     responseText = result
                 }
             },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(50)
         ) {
-            Text("Preguntar")
+            Text("Consultar")
         }
 
-        Text(
-            text = responseText,
-            modifier = Modifier.fillMaxWidth()
-        )
+        Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+        if (responseText.isNotBlank()) {
+            Surface(
+                color = Color(0xFFF0F0F5),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = responseText,
+                    modifier = Modifier
+                        .padding(16.dp),
+                    color = Color.Black,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = "Advertencia",
+                tint = Color(0xFFD32F2F),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Evita automedicarte",
+                fontSize = 12.sp,
+                color = Color(0xFFD32F2F)
+            )
+        }
     }
 }
 
 suspend fun queryGemini(prompt: String): String {
     return withContext(Dispatchers.IO) {
         try {
-            val request = GeminiRequest(
-                contents = listOf(
-                    Content(
-                        role = "user",
-                        parts = listOf(Part(text = prompt))
-                    )
-                )
+            val finalPrompt = """
+                Saluda al usuario y menciona para qué sirve el medicamento "$prompt".
+                Si está mal escrito pero entendible, acepta la consulta. Si hay ambigüedad, pide que se repita.
+                Explica para qué sirve y cuáles son los efectos secundarios.
+                No recomiendes dosis ni fomentes la automedicación.
+                Incluye un emoji de pastilla al final.
+            """.trimIndent()
+
+            val model = GenerativeModel(
+                modelName = "gemini-pro",
+                apiKey = BuildConfig.GEMINI_API_KEY
             )
 
-            val response = GeminiClient.apiService.generateContent(request).execute()
-
-            if (response.isSuccessful) {
-                val body = response.body()
-                val generatedText = body?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                generatedText ?: "Respuesta vacía"
-            } else {
-                "Error: ${response.code()} - ${response.message()}"
-            }
+            val response = model.generateContent(finalPrompt)
+            response.text ?: "Respuesta vacía"
         } catch (e: Exception) {
-            "Excepción: ${e.message}"
+            "Error: ${e.message}"
         }
     }
 }
