@@ -49,6 +49,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import com.example.notimedi.data.model.preferences.UserPreferences
 import retrofit2.http.Part
+import com.example.notimedi.repositorio.FdaRepository
+
 
 class PrincipalActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -447,6 +449,7 @@ fun PerfilesScreen(activarFormulario: Boolean = false) {
 fun GeminiQueryScreen() {
     var userInput by remember { mutableStateOf("") }
     var responseText by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) } // 👈 estado de carga
     val scope = rememberCoroutineScope()
 
     Column(
@@ -481,8 +484,11 @@ fun GeminiQueryScreen() {
         Button(
             onClick = {
                 scope.launch {
-                    val result = GeminiHelper.query(userInput)
+                    isLoading = true
+                    responseText = ""
+                    val result = FdaRepository.consultarMedicamento(userInput)
                     responseText = result
+                    isLoading = false
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -493,6 +499,11 @@ fun GeminiQueryScreen() {
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
 
+        // 🔄 Mostrar indicador de carga si isLoading está en true
+        if (isLoading) {
+            CircularProgressIndicator(color = Color(0xFF5D7FBF))
+        }
+
         if (responseText.isNotBlank()) {
             Surface(
                 color = Color(0xFFF0F0F5),
@@ -501,17 +512,14 @@ fun GeminiQueryScreen() {
             ) {
                 Text(
                     text = responseText,
-                    modifier = Modifier
-                        .padding(16.dp),
+                    modifier = Modifier.padding(16.dp),
                     color = Color.Black,
                     fontSize = 14.sp
                 )
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 imageVector = Icons.Default.Warning,
                 contentDescription = "Advertencia",
@@ -524,30 +532,6 @@ fun GeminiQueryScreen() {
                 fontSize = 12.sp,
                 color = Color(0xFFD32F2F)
             )
-        }
-    }
-}
-
-suspend fun queryGemini(prompt: String): String {
-    return withContext(Dispatchers.IO) {
-        try {
-            val finalPrompt = """
-                Saluda al usuario y menciona para qué sirve el medicamento "$prompt".
-                Si está mal escrito pero entendible, acepta la consulta. Si hay ambigüedad, pide que se repita.
-                Explica para qué sirve y cuáles son los efectos secundarios.
-                No recomiendes dosis ni fomentes la automedicación.
-                Incluye un emoji de pastilla al final.
-            """.trimIndent()
-
-            val model = GenerativeModel(
-                modelName = "gemini-pro",
-                apiKey = BuildConfig.GEMINI_API_KEY
-            )
-
-            val response = model.generateContent(finalPrompt)
-            response.text ?: "Respuesta vacía"
-        } catch (e: Exception) {
-            "Error: ${e.message}"
         }
     }
 }
