@@ -56,6 +56,7 @@ fun SettingsScreen() {
 
     var pinVisible by remember { mutableStateOf(false) }
     var pinText by remember { mutableStateOf("") }
+    var showAbout by remember { mutableStateOf(false) }
     val currentUser by userPrefs.getCurrentUser().collectAsState(initial = "")
 
     Column(
@@ -89,23 +90,48 @@ fun SettingsScreen() {
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(
-                onClick = { },
+            // Botón Sobre NotiMedi con contenido desplegable
+            ElevatedButton(
+                onClick = { showAbout = !showAbout },
                 modifier = Modifier.fillMaxWidth(0.9f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2C2C))
-            ) { Text("Cambiar contraseña", color = Color.White) }
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3A3A3A))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Sobre NotiMedi", color = Color.White)
+                    Icon(
+                        imageVector = if (showAbout) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
+            }
 
-            Button(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth(0.9f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2C2C))
-            ) { Text("Borrar cuenta", color = Color.White) }
+            if (showAbout) {
+                Text(
+                    text = """
+                        Desarrolladores:
+                        Cinthia Yasmin Rivera Pineda RP101022
 
-            Button(
-                onClick = { },
-                modifier = Modifier.fillMaxWidth(0.9f),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2C2C))
-            ) { Text("Sobre NotiMedi", color = Color.White) }
+                        Emmanuel Antonio Escobar Luna EL100122
+
+                        Raul Antonio Elias Alegria EA100222
+
+                        Luis Nelson Hernandez Blanco HB100122
+
+                        Leonardo Antonio Iraheta Menjivar IM100220
+
+                        Fernando Jose Trejo Guevara TG100221
+                    """.trimIndent(),
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
