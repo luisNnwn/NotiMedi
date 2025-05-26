@@ -143,11 +143,11 @@ fun PrincipalScreen(navController: NavHostController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         val articles = listOf(
-            "Importancia de tomar los medicamentos a tiempo" to "https://www.youtube.com/watch?v=1",
-            "¿Puedo tomar alcohol con mi medicamento?" to "https://www.youtube.com/watch?v=2",
-            "Consejos para organizar tus medicamentos" to "https://www.youtube.com/watch?v=3",
-            "Evita errores comunes al tomar tus medicinas" to "https://www.youtube.com/watch?v=4",
-            "Tipos de medicamentos y sus efectos" to "https://www.youtube.com/watch?v=5"
+            "Importancia de tomar los medicamentos a tiempo" to "https://youtu.be/sHC10PebpMo?si=YufJjWjiFw7Vnom0",
+            "¿Puedo tomar alcohol con mi medicamento?" to "https://youtu.be/VQlWV1o7buQ?si=YtJo2-wnfoqeOh3a",
+            "Consejos para organizar tus medicamentos" to "https://youtu.be/4RNQge_Zr-g?si=CdP_UnJxyVo_ZbU2",
+            "Evita errores comunes al tomar tus medicinas" to "https://youtu.be/LCe1vORmqJQ?si=HCEYE9I_OjgnPd6-",
+            "¿Cómo sabe la pastilla donde me duele?" to "https://youtu.be/qmO41t84REc?si=6mCkPvFIb9pHKw7z"
         )
 
         articles.forEach { (title, url) ->
